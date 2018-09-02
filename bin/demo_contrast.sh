@@ -19,7 +19,7 @@ AWS_CONFIG_FILE=~/.aws/config
 AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.2
+DEFAULT_DEMO_AMI=hde-0.1.2 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then

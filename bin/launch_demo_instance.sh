@@ -15,7 +15,7 @@ TTL_PERIODS=$(expr $6 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
 INSTANCE_TYPE=m4.xlarge
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.2
+DEFAULT_DEMO_AMI=hde-0.1.2 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 6 ]]; then
