@@ -19,6 +19,7 @@ AWS_CONFIG_FILE=~/.aws/config
 AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
 PUBLIC_IP=''
+DEFAULT_DEMO_AMI=hde-0.1.2
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
@@ -74,7 +75,7 @@ fi
 # Get the AMI ID of the latest HDE "Golden Image"
 # The 'default' AMI name is hde-0.1.0 as of August 31, 2018.
 if [[ $VERSION = default ]]; then
-  VERSION=hde-0.1.1 # This value should be set to the name of the latest Contrast demo AMI
+  VERSION=$DEFAULT_DEMO_AMI # This value should be set to the name of the latest Contrast demo AMI
 fi
 AMI_ID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*")"
 # echo "Found matching AMI (${AMI_ID})..."

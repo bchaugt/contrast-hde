@@ -15,6 +15,7 @@ TTL_PERIODS=$(expr $6 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
 INSTANCE_TYPE=m4.xlarge
 PUBLIC_IP=''
+DEFAULT_DEMO_AMI=hde-0.1.2
 
 # Check if all expected arguments were provided
 if [[ $# -ne 6 ]]; then
@@ -25,7 +26,7 @@ fi
 # Get the AMI ID of the latest HDE "Golden Image"
 # The 'default' AMI name is hde-0.1.0 as of August 31, 2018.
 if [[ $VERSION = default ]]; then
-  VERSION=hde-0.1.1 # This value should be set to the name of the latest Contrast demo AMI
+  VERSION=$DEFAULT_DEMO_AMI # This value should be set to the name of the latest Contrast demo AMI
 fi
 AMI_ID="$(aws ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*")"
 # echo "Found matching AMI (${AMI_ID})..."
