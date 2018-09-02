@@ -16,8 +16,8 @@ fi
 AMI_ID="$(aws ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${SOURCE_REGION} | grep -o "ami-[a-zA-Z0-9_]*")"
 echo "Found matching AMI (${AMI_ID})..."
 
-# Copy AMI to all regions
-for REGION in us-east-1 us-east-2 us-west-1 us-west-2 ap-northeast-1 ap-northeast-2 ap-south-1 ap-southeast-1 ap-southeast-2 ca-central-1 cn-north-1 cn-northwest-1 eu-central-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1
+# Copy AMI to all regions (except cn-north-1 cn-northwest-1 (China) where it's not allowed)
+for REGION in us-east-1 us-east-2 us-west-1 us-west-2 ap-northeast-1 ap-northeast-2 ap-south-1 ap-southeast-1 ap-southeast-2 ca-central-1 eu-central-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1
 do
   if [ $REGION != $SOURCE_REGION ] then
     echo "Copying AMI named '${VERSION}' to '${REGION}' region..."
