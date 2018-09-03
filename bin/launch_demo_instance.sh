@@ -1,5 +1,6 @@
 #!/bin/bash
 # Launches Contrast Security SE virtual Windows developer workstation in AWS for demo purposes
+# This script expects a valid EC2 key pair configured in the target AWS region
 
 # Variables
 USAGE="Usage: $0 [demo version] [customer name or description] [your aws key name] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' brianchau 'Brian Chau' us-west-1 2"
@@ -13,9 +14,9 @@ ALARM_PERIOD=900 # CloudWatch alarm period of 900 seconds (15 minutes)
 TTL_BUFFER=2 # Number of additional $ALARM_PERIOD duration buffers before automatic termination of demo instances
 TTL_PERIODS=$(expr $6 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
-INSTANCE_TYPE=m4.xlarge
+INSTANCE_TYPE=m5.xlarge
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.2 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.3 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 6 ]]; then
@@ -74,7 +75,8 @@ TERMINATION_ALARM=$(aws cloudwatch put-metric-alarm \
 --alarm-description "Terminate instance after ${TTL} hours" \
 --namespace AWS/EC2 \
 --metric-name CPUUtilization \
---unit Percent --statistic Average \
+--unit Percent \
+--statistic Average \
 --period $ALARM_PERIOD \
 --evaluation-periods $TTL_PERIODS \
 --threshold 0 \

@@ -2,6 +2,9 @@
 # To set new credentials, use: Set-AWSCredential -AccessKey [access key] -SecretKey [secret key] -StoreAs DemoPerson
 Set-AWSCredential -ProfileName DemoPerson
 
+# Fix AWS Windows 2016 network issue
+# ./win_2016_aws_network_fix.ps1
+
 # Define target Linux AMI by name
 $target_ami_name = "hde-linux-ruby-0.1.0"
 Write-Host $target_ami_name
@@ -54,10 +57,10 @@ $instance_id = Invoke-RestMethod -uri http://169.254.169.254/latest/meta-data/in
 Write-Host "Instance ID is" $instance_id
 
 # Get the AWS public key used to launch this running instance
-$public_key = Invoke-RestMethod -uri http://169.254.169.254/latest/meta-data/public-keys
-$keyname = $public_key.Substring(2,$public_key.Length-2)
+# $public_key = Invoke-RestMethod -uri http://169.254.169.254/latest/meta-data/public-keys
+# $keyname = $public_key.Substring(2,$public_key.Length-2)
 If ($keyname.Length -lt 1) {$keyname="brian"}
-Write-Host "Key is" $keyname
+# Write-Host "Key is" $keyname
 
 # Setup tags for new Linux instance
 $tag_purpose = @{ Key="x-purpose"; Value="ruby demo" }
@@ -87,3 +90,5 @@ $env:linux_instance_ip = $instances[0].PrivateIpAddress
 # Open web browser to new Linux instance running RailsGoat
 $path = "http://" + $env:linux_instance_ip + ":5000"
 cmd /c start /min $path
+
+Write-Host "Your Linux instance running Ruby RailsGoat should be available in a few minutes at" $path".`n"

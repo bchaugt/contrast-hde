@@ -13,13 +13,13 @@ ALARM_PERIOD=900 # CloudWatch alarm period of 900 seconds (15 minutes)
 TTL_BUFFER=2 # Number of additional $ALARM_PERIOD duration buffers before automatic termination of demo instances
 TTL_PERIODS=$(expr $5 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
-INSTANCE_TYPE=m4.xlarge
+INSTANCE_TYPE=m5.xlarge
 AWS_DIR=~/.aws
 AWS_CONFIG_FILE=~/.aws/config
 AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.2 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.3 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
@@ -77,8 +77,14 @@ fi
 if [[ $VERSION = default ]]; then
   VERSION=$DEFAULT_DEMO_AMI # This value should be set to the name of the latest Contrast demo AMI
 fi
+echo "Input version is: ${VERSION}"
 AMI_ID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*")"
-# echo "Found matching AMI (${AMI_ID})..."
+if [ ! -z $AMI_ID ]; then
+  echo "Found matching AMI (${AMI_ID})..."
+else
+  echo "ERROR: Could not find matching AMI named ${VERSION} in the ${REGION_AWS} region."
+  exit 1
+fi
 
 # Create instance Name tag
 TAG_NAME="${CUSTOMER}-${CONTACT}"
@@ -102,40 +108,43 @@ LAUNCH_INSTANCE=$(aws --profile $HDE_PROFILE_NAME ec2 run-instances \
 if [ $LAUNCH_INSTANCE ]; then
   echo "Something went wrong, launching the EC2 instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
   exit 1
-else
-  echo "Launching Contrast virtual Windows developer workstation..."
 fi
 
 # Get the Instance ID of the newly created instance
 INSTANCEID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" "Name=instance-state-name,Values=pending" | grep InstanceId | grep -o "i-[a-zA-Z0-9_]*")"
 
-# Get public IP address of the newly created instance
-PUBLIC_IP="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
-echo -e "\nYour new Windows demo workstation is being created (InstanceID ${INSTANCEID}).\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'.\nIf you do not know the password, please ask your friendly neighborhood sales engineer."
+if [ ! -z $INSTANCEID ]; then
+  echo "Launching Contrast virtual Windows developer workstation..."
 
-# Set unique name for the CloudWatch alarm
-ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
+  # Get public IP address of the newly created instance
+  PUBLIC_IP="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
+  echo -e "\nYour new Windows demo workstation is being created (InstanceID ${INSTANCEID}).\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'.\nIf you do not know the password, please ask your friendly neighborhood sales engineer."
 
-# Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
-TERMINATION_ALARM=$(aws --profile $HDE_PROFILE_NAME cloudwatch put-metric-alarm \
---alarm-name "${ALARM_NAME}" \
---alarm-description "Terminate instance after ${TTL} hours" \
---namespace AWS/EC2 \
---metric-name CPUUtilization \
---unit Percent --statistic Average \
---period $ALARM_PERIOD \
---evaluation-periods $TTL_PERIODS \
---threshold 0 \
---comparison-operator GreaterThanOrEqualToThreshold \
---dimensions "Name=InstanceId,Value=${INSTANCEID}" \
---alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
+  # Set unique name for the CloudWatch alarm
+  ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
 
-if [ $TERMINATION_ALARM ]; then
-  aws --profile $HDE_PROFILE_NAME ec2 terminate-instances --instance-ids $INSTANCEID
-  echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
-  exit 1
-else
-  echo "Your workstation will automatically terminate after ${TTL} hour(s)."
+  # Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
+  TERMINATION_ALARM=$(aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} cloudwatch put-metric-alarm \
+  --alarm-name "${ALARM_NAME}" \
+  --alarm-description "Terminate instance after ${TTL} hours" \
+  --namespace AWS/EC2 \
+  --metric-name CPUUtilization \
+  --unit Percent \
+  --statistic Average \
+  --period $ALARM_PERIOD \
+  --evaluation-periods $TTL_PERIODS \
+  --threshold 0 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --dimensions "Name=InstanceId,Value=${INSTANCEID}" \
+  --alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
+
+  if [ $TERMINATION_ALARM ]; then
+    aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} ec2 terminate-instances --instance-ids $INSTANCEID
+    echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
+    exit 1
+  else
+    echo -e "\nYour workstation will automatically terminate after ${TTL} hour(s)."
+  fi
 fi
 
 # Remove AWS contrast-hde config and credentials by restoring backup files
