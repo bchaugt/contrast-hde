@@ -13,7 +13,7 @@ REGION_AWS=$5 # For a list of AWS regions, look here: https://docs.aws.amazon.co
 TTL=$6
 ALARM_PERIOD=900 # CloudWatch alarm period of 900 seconds (15 minutes)
 TTL_BUFFER=2 # Number of additional $ALARM_PERIOD duration buffers before automatic termination of demo instances
-TTL_PERIODS=$(expr $6 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
+TTL_PERIODS=0
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
 INSTANCE_TYPE=m5.xlarge
 PUBLIC_IP=''
@@ -42,53 +42,56 @@ if [ ! -d "logs" ]; then
 fi
 
 # Launch the AWS EC2 instance
-LAUNCH_INSTANCE="$(aws ec2 run-instances \
---image-id ${AMI_ID} \
+LAUNCH_INSTANCE=$(aws ec2 run-instances \
+--image-id $AMI_ID \
 --count 1 \
---instance-type ${INSTANCE_TYPE} \
+--instance-type $INSTANCE_TYPE \
 --key-name ${SSH_KEY} \
 --security-groups 'ContrastDemo' \
 --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${TAG_NAME}},{Key=Owner,Value=${CONTACT}},{Key=Demo-Version,Value=${VERSION}},{Key=x-purpose,Value='demo'},{Key=x-creation-timestamp,Value=${CREATION_TIMESTAMP}}]" \
 --block-device-mapping "DeviceName=/dev/sda1,Ebs={DeleteOnTermination=true}" \
---region=${REGION_AWS} \
-> "logs/demo_instance_${REGION_AWS}_${CREATION_TIMESTAMP}.log")"
+--region=$REGION_AWS \
+> "logs/demo_instance_${REGION_AWS}_${CREATION_TIMESTAMP}.log")
 
 if [ $LAUNCH_INSTANCE ]; then
   echo "Something went wrong, launching the EC2 instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
   exit 1
-else
-  echo "Launching Contrast virtual Windows developer workstation..."
 fi
 
 # Get the Instance ID of the newly created instance
 INSTANCEID="$(aws ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" "Name=instance-state-name,Values=pending" | grep InstanceId | grep -o "i-[a-zA-Z0-9_]*")"
 
-# Get public IP address of the newly created instance
-PUBLIC_IP="$(aws ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
-echo -e "\nYour new Windows demo workstation is being created.\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'.\nIf you do not know the password, please ask your friendly neighborhood sales engineer."
+if [ ! -z $INSTANCEID ]; then
+  echo "Launching Contrast virtual Windows developer workstation..."
 
-# Set unique name for the CloudWatch alarm
-ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
+  # Get public IP address of the newly created instance
+  PUBLIC_IP="$(aws ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
+  echo -e "\nYour new Windows demo workstation is being created.\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'.\nIf you do not know the password, please ask your friendly neighborhood sales engineer.\n"
 
-# Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
-TERMINATION_ALARM=$(aws cloudwatch put-metric-alarm \
---alarm-name "${ALARM_NAME}" \
---alarm-description "Terminate instance after ${TTL} hours" \
---namespace AWS/EC2 \
---metric-name CPUUtilization \
---unit Percent \
---statistic Average \
---period $ALARM_PERIOD \
---evaluation-periods $TTL_PERIODS \
---threshold 0 \
---comparison-operator GreaterThanOrEqualToThreshold \
---dimensions "Name=InstanceId,Value=${INSTANCEID}" \
---alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
+  # Set unique name for the CloudWatch alarm
+  ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
 
-if [ $TERMINATION_ALARM ]; then
-  aws ec2 terminate-instances --instance-ids $INSTANCEID
-  echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
-  exit 1
-else
-  echo "Your workstation will automatically terminate after ${TTL} hour(s)."
+  # Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
+  TTL_PERIODS=$(expr $6 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
+  TERMINATION_ALARM=$(aws --region=${REGION_AWS} cloudwatch put-metric-alarm \
+  --alarm-name "${ALARM_NAME}" \
+  --alarm-description "Terminate instance after ${TTL} hours" \
+  --namespace AWS/EC2 \
+  --metric-name CPUUtilization \
+  --unit Percent \
+  --statistic Average \
+  --period $ALARM_PERIOD \
+  --evaluation-periods $TTL_PERIODS \
+  --threshold 0 \
+  --comparison-operator GreaterThanOrEqualToThreshold \
+  --dimensions "Name=InstanceId,Value=${INSTANCEID}" \
+  --alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
+
+  if [ $TERMINATION_ALARM ]; then
+    aws ec2 terminate-instances --instance-ids $INSTANCEID
+    echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
+    exit 1
+  else
+    echo "Your workstation will automatically terminate after ${TTL} hour(s)."
+  fi
 fi
