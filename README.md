@@ -13,6 +13,7 @@ This script will copy a source AMI across all AWS regions.  The source AMI is id
 
 **Example:**
 `./copy_ami_to_all_regions.sh hde-0.1.0 us-east-1`
+<br/>
 
 #### create_demo_security_groups.sh
 This script will create a security group call `ContrastDemo` across all AWS regions.
@@ -23,6 +24,7 @@ This script will create EC2 keys with the specified key name across all AWS regi
 
 **Example:**
 `./create_keys_all_regions.sh brianchaukey (Please note that the key name cannot have spaces)`
+<br/>
 
 #### demo_contrast.sh
 This script will launch a new Contrast demo "virtual developer workstation".  It expects 5 input arguments:
@@ -36,6 +38,7 @@ This script will launch a new Contrast demo "virtual developer workstation".  It
 
 **Example:**
 `./demo_contrast.sh default 'Acme Corp' 'Brian Chau' us-west-1 2`
+<br/>
 
 #### deregister_ami_across_regions.sh
 This script will deregister AMIs across all AWS regions based on the specified AMI name.  It is meant to be used to easily deregister obsolete Contrast demo workstation AMIs.<br/>
@@ -43,6 +46,7 @@ This script will deregister AMIs across all AWS regions based on the specified A
 
 **Example:**
 `./deregister_ami_across_regions.sh hde-0.1.0`
+<br/>
 
 #### launch_demo_instance.sh
 This script will launch a Contrast demo "virtual developer workstation" using a personal SSH key.  **The `demo_contrast.sh` script is preferred and should be used instead.** (This should only be used by Contrast Sales Engineers and other Contrast employees who have configured their SSH key pairs under the AWS Account.)<br/>
@@ -52,16 +56,18 @@ This script will launch a Contrast demo "virtual developer workstation" using a 
 `./launch_demo_instance.sh default 'Acme Corp' brianchau 'Brian Chau' us-west-1 2`
 
 <br/><br/>
-### PowerShell scripts
+### PowerShell Scripts
 The following PowerShell scripts are designed to only be run from within a Contrast demo "virtual developer workstation".  There are located in `C:\Contrast` within the demo workstation.
 
 #### CreateRailsGoatInstance.ps1
 This script will launch a Linux EC2 instance from within a Windows "virtual developer workstation" to support a Ruby RailsSGoat demonstration.  The result is a Linux server in the same AWS VPC that is pre-configured to serve RailsGoat and connect to the Contrast TeamServer running on the Wndows workstation.  This script can be used to launch multiple Linux instances with RailsGoat if needed.<br/>
 **Usage:** `.\CreateRailsGoatInstance.ps1`
+<br/>
 
 #### TerminateRailsGoatInstances.ps1
 This script will terminate all Linux EC2 instances that are associated with the Windows "virtual developer workstation" from which it is run.  If multiple Linux instances for RailsGoat were launched, this script will terminate them all.<br/>
 **Usage:** `.\TerminateRailsGoatInstances.ps1`
+<br/>
 
 #### win_2016_aws_network_fix.ps1
 This script is kindly borrowed from https://gist.github.com/Gonzales/e000b7c2e72e13701c77431d3a2ffd73.  It fixes an issue with AWS Windows 2016 AMIs where it does not properly register routes to 169.254.169.254 by default, the AWS EC2 meta-data service to get information about a running instance from within an instance itself.  This script is automatically run upon startup from the Contrast demo "virtual developer workstation" and should not need to be run again
