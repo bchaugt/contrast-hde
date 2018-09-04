@@ -16,7 +16,8 @@ This script will copy a source AMI across all AWS regions.  The source AMI is id
 <br/>
 
 ### create_demo_security_groups.sh
-This script will create a security group call `ContrastDemo` across all AWS regions.
+This script will create a security group call `ContrastDemo` across all AWS regions.<br/>
+**Usage:** `./create_demo_security_groups.sh`
 
 ### create_keys_all_regions.sh
 This script will create EC2 keys with the specified key name across all AWS regions.<br/>
@@ -70,4 +71,5 @@ This script will terminate all Linux EC2 instances that are associated with the 
 <br/>
 
 ### win_2016_aws_network_fix.ps1
-This script is kindly borrowed from https://gist.github.com/Gonzales/e000b7c2e72e13701c77431d3a2ffd73.  It fixes an issue with AWS Windows 2016 AMIs where it does not properly register routes to 169.254.169.254 by default, the AWS EC2 meta-data service to get information about a running instance from within an instance itself.  This script is automatically run upon startup from the Contrast demo "virtual developer workstation" and should not need to be run again
+This script is kindly borrowed from https://gist.github.com/Gonzales/e000b7c2e72e13701c77431d3a2ffd73.  It fixes an issue with AWS Windows 2016 AMIs where it does not properly register routes to 169.254.169.254 by default, the AWS EC2 meta-data service to get information about a running instance from within an instance itself.  This script is automatically run upon startup from the Contrast demo "virtual developer workstation" and should not need to be run again.
+**Usage:** `.\win_2016_aws_network_fix.ps1`
