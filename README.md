@@ -71,5 +71,5 @@ This script will terminate all Linux EC2 instances that are associated with the 
 <br/>
 
 ### win_2016_aws_network_fix.ps1
-This script is kindly borrowed from https://gist.github.com/Gonzales/e000b7c2e72e13701c77431d3a2ffd73.  It fixes an issue with AWS Windows 2016 AMIs where it does not properly register routes to 169.254.169.254 by default, the AWS EC2 meta-data service to get information about a running instance from within an instance itself.  This script is automatically run upon startup from the Contrast demo "virtual developer workstation" and should not need to be run again.
+This script is kindly borrowed from https://gist.github.com/Gonzales/e000b7c2e72e13701c77431d3a2ffd73.  It fixes an issue with AWS Windows 2016 AMIs where it does not properly register routes to 169.254.169.254 by default, the AWS EC2 meta-data service to get information about a running instance from within an instance itself.  This script is automatically run upon startup from the Contrast demo "virtual developer workstation" and should not need to be run again.<br/>
 **Usage:** `.\win_2016_aws_network_fix.ps1`
