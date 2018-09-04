@@ -14,7 +14,7 @@ $windows_instance_id = Invoke-RestMethod -uri http://169.254.169.254/latest/meta
 $windows_instance_name = "Ruby-demo-for-" + $windows_instance_id
 
 # Get Linux instance(s) associated with this running (Windows) instance
-$linux_instances = (Get-EC2Instance -Filter @{Name="tag:Name";Value=$windows_instance_name}).Instances
+$linux_instances = (Get-EC2Instance -Region $region -Filter @{Name="tag:Name";Value=$windows_instance_name}).Instances
 For ($i=0; $i -lt $linux_instances.Length; $i++) {
 	# If the found Linux instance is not already terminated, then terminate it.
 	$status = Get-EC2InstanceStatus -Region $region -InstanceId $linux_instances[$i].InstanceId

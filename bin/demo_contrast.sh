@@ -11,7 +11,7 @@ REGION_AWS=$4 # For a list of AWS regions, look here: https://docs.aws.amazon.co
 TTL=$5
 ALARM_PERIOD=900 # CloudWatch alarm period of 900 seconds (15 minutes)
 TTL_BUFFER=2 # Number of additional $ALARM_PERIOD duration buffers before automatic termination of demo instances
-TTL_PERIODS=$(expr $5 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
+TTL_PERIODS=0
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
 INSTANCE_TYPE=m5.xlarge
 AWS_DIR=~/.aws
@@ -19,7 +19,7 @@ AWS_CONFIG_FILE=~/.aws/config
 AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.6 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.7 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
@@ -124,6 +124,7 @@ if [ ! -z $INSTANCEID ]; then
   ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
 
   # Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
+  TTL_PERIODS=$(expr $5 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
   TERMINATION_ALARM=$(aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} cloudwatch put-metric-alarm \
   --alarm-name "${ALARM_NAME}" \
   --alarm-description "Terminate instance after ${TTL} hours" \
