@@ -1,6 +1,7 @@
 #!/bin/bash
 # Launches Contrast Security SE virtual Windows developer workstation in AWS for demo purposes
 # This script expects a valid EC2 key pair configured in the target AWS region
+# It is recommended to use the 'demo_contrast.sh' script instead.
 
 # Variables
 USAGE="Usage: $0 [demo version] [customer name or description] [your aws key name] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' brianchau 'Brian Chau' us-west-1 2"
@@ -16,7 +17,7 @@ TTL_PERIODS=$(expr $6 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
 INSTANCE_TYPE=m5.xlarge
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.3 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.6 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 6 ]]; then
