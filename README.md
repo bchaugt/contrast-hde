@@ -51,6 +51,8 @@ This script will launch a Contrast demo "virtual developer workstation" using a 
 **Example:**
 `./launch_demo_instance.sh default 'Acme Corp' brianchau 'Brian Chau' us-west-1 2`
 
+
+
 ### PowerShell scripts
 The following PowerShell scripts are designed to only be run from within a Contrast demo "virtual developer workstation".
 
