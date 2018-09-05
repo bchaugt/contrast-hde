@@ -13,5 +13,16 @@ if [[ $# -ne 2 ]]; then
   exit 1
 fi
 
-echo "Terminating instance ${INSTANCE_ID})..."
-aws --profile $HDE_PROFILE_NAME --region=$REGION_AWS ec2 terminate-instances --instance-ids $INSTANCE_ID
+# Terminate the user-specified instance
+WINDOWS_INSTANCE_STATUS="$(aws --profile ${HDE_PROFILE_NAME} --region=${REGION_AWS} ec2 describe-instance-status --instance-id ${INSTANCE_ID} | grep "Code" | grep -Eo "[0-9]{1,2}" )"
+if [ $WINDOWS_INSTANCE_STATUS != 48 ]; then # EC2 status code of '48' means the instance is 'terminated'
+  echo "Found instance with ID ${INSTANCE_ID}..."
+  echo "Terminating Windows demo workstation instance ${INSTANCE_ID})..."
+  aws --profile $HDE_PROFILE_NAME --region=$REGION_AWS ec2 terminate-instances --instance-ids $INSTANCE_ID
+else
+  echo "The specified instance ${INSTANCE_ID} is already terminated or does not exist in region ${REGION_AWS}."
+fi
+
+# Find associated Linux instances used for Ruby demos
+# LINUX_INSTANCES="$(aws --profile $HDE_PROFILE_NAME --region=$REGION_AWS ec2 describe-instances --filter "Name=tag:Name,Values=Ruby-demo-for-${INSTANCE_ID}" | grep InstanceId | grep -o "i-[a-zA-Z0-9_]*")"
+# echo $LINUX_INSTANCES
