@@ -3,6 +3,7 @@
 # This script is meant to be run on MacOS
 
 # Variables
+DEFAULT_DEMO_AMI=hde-0.1.12 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 USAGE="Usage: $0 [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' 'Brian Chau' us-west-1 2"
 VERSION=$1
 CUSTOMER=$2
@@ -19,7 +20,6 @@ AWS_CONFIG_FILE=~/.aws/config
 AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
 PUBLIC_IP=""
-DEFAULT_DEMO_AMI=hde-0.1.11 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 PING_COUNT=3
 DESKTOP_WIDTH=2560
 DESKTOP_HEIGHT=1600
