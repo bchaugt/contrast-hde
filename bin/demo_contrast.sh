@@ -12,14 +12,17 @@ TTL=$5
 ALARM_PERIOD=900 # CloudWatch alarm period of 900 seconds (15 minutes)
 TTL_BUFFER=2 # Number of additional $ALARM_PERIOD duration buffers before automatic termination of demo instances
 TTL_PERIODS=0
-CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
+CREATION_TIMESTAMP="$(date '+%Y-%m-%d %H:%M:%S')"
 INSTANCE_TYPE=m5.xlarge
 AWS_DIR=~/.aws
 AWS_CONFIG_FILE=~/.aws/config
 AWS_CRED_FILE=~/.aws/credentials
 HDE_PROFILE_NAME=contrast-hde
-PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.8 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+PUBLIC_IP=""
+DEFAULT_DEMO_AMI=hde-0.1.11 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+PING_COUNT=3
+DESKTOP_WIDTH=2560
+DESKTOP_HEIGHT=1600
 
 # Check if all expected arguments were provided
 if [[ $# -ne 5 ]]; then
@@ -77,7 +80,7 @@ fi
 if [[ $VERSION = default ]]; then
   VERSION=$DEFAULT_DEMO_AMI # This value should be set to the name of the latest Contrast demo AMI
 fi
-echo "Input version is: ${VERSION}"
+echo "${CREATION_TIMESTAMP} - Input version is: ${VERSION}"
 AMI_ID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-images --filters "Name=name,Values=${VERSION}" --region=${REGION_AWS} | grep -o "ami-[a-zA-Z0-9_]*")"
 if [ ! -z $AMI_ID ]; then
   echo "Found matching AMI (${AMI_ID})..."
@@ -114,40 +117,66 @@ fi
 INSTANCEID="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" "Name=instance-state-name,Values=pending" | grep InstanceId | grep -o "i-[a-zA-Z0-9_]*")"
 
 if [ ! -z $INSTANCEID ]; then
-  echo "Launching Contrast virtual Windows developer workstation..."
+  echo -e "\nLaunching Contrast virtual Windows developer workstation..."
 
   # Get public IP address of the newly created instance
-  PUBLIC_IP="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
-  echo -e "\nYour new Windows demo workstation is being created (InstanceID ${INSTANCEID}).\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'.\nIf you do not know the password, please ask your friendly neighborhood sales engineer."
+  PUBLIC_IP="$(aws --profile ${HDE_PROFILE_NAME} ec2 describe-instances --region=${REGION_AWS} --filters "Name=tag:Name,Values=${TAG_NAME}" "Name=instance-id,Values=${INSTANCEID}" | grep PublicIpAddress | grep -Eo "[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}")"
+  echo -e "  InstanceID: ${INSTANCEID}"
+  echo -e "  Public IP: ${PUBLIC_IP}"
+  echo -e "\nWait about 10 minutes, then open your remote desktop client and connect to ${PUBLIC_IP} as 'Administrator'."
+  echo -e "If you do not know the password, please ask your friendly neighborhood sales engineer."
 
-  # Set unique name for the CloudWatch alarm
-  ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
+  if [ $TTL -gt 0 ]; then
+    # Set unique name for the CloudWatch alarm
+    ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
 
-  # Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
-  TTL_PERIODS=$(expr $5 \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
-  TERMINATION_ALARM=$(aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} cloudwatch put-metric-alarm \
-  --alarm-name "${ALARM_NAME}" \
-  --alarm-description "Terminate instance after ${TTL} hours" \
-  --namespace AWS/EC2 \
-  --metric-name CPUUtilization \
-  --unit Percent \
-  --statistic Average \
-  --period $ALARM_PERIOD \
-  --evaluation-periods $TTL_PERIODS \
-  --threshold 0 \
-  --comparison-operator GreaterThanOrEqualToThreshold \
-  --dimensions "Name=InstanceId,Value=${INSTANCEID}" \
-  --alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
+    # Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
+    TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
+    TERMINATION_ALARM=$(aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} cloudwatch put-metric-alarm \
+    --alarm-name "${ALARM_NAME}" \
+    --alarm-description "Terminate instance after ${TTL} hours" \
+    --namespace AWS/EC2 \
+    --metric-name CPUUtilization \
+    --unit Percent \
+    --statistic Average \
+    --period $ALARM_PERIOD \
+    --evaluation-periods $TTL_PERIODS \
+    --threshold 0 \
+    --comparison-operator GreaterThanOrEqualToThreshold \
+    --dimensions "Name=InstanceId,Value=${INSTANCEID}" \
+    --alarm-actions arn:aws:automate:$REGION_AWS:ec2:terminate)
 
-  if [ $TERMINATION_ALARM ]; then
-    aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} ec2 terminate-instances --instance-ids $INSTANCEID
-    echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
-    exit 1
+    if [ $TERMINATION_ALARM ]; then
+      aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} ec2 terminate-instances --instance-ids $INSTANCEID
+      echo "Something went wrong, setting the alarm to automatically terminate this instance failed!  Please try again or contact the Contrast Sales Engineering team for assistance."
+      exit 1
+    else
+      echo -e "\nYour workstation will automatically terminate after ${TTL} hour(s)."
+    fi
   else
-    echo -e "\nYour workstation will automatically terminate after ${TTL} hour(s)."
+    # No alarm will be set and this instance will need to be auto-terminated
+    echo -e "\n*** PLEASE NOTE THAT THIS NEW INSTANCE WILL NOT BE AUTOMATICALLY TERMINATED ***"
   fi
 fi
 
-# Remove AWS contrast-hde config and credentials by restoring backup files
-# mv ~/.aws/config.bak ~/.aws/config
-# mv ~/.aws/credentials.bak ~/.aws/credentials
+# Sleep 5 minutes and then check if the new instance is network accessible
+echo -e "\nNow let's wait for 5 minutes and then check if the instance is ready..."
+sleep 300
+
+# Check if the new instance is publicly accessible every 10 seconds
+while true; do
+  # Ping the new instance's public IP address to see if there is any packet loss
+  PING_RESPONSE="$(ping -c ${PING_COUNT} ${PUBLIC_IP} | grep -o " 0.0% packet loss" )" # The blank space before '0.0%...' is important
+  # echo $PING_RESPONSE
+
+  if [ "${PING_RESPONSE}" = " 0.0% packet loss" ]; then
+    # If the instance is available, then launch Microsoft Remote Desktop to connect
+    echo -e "Opening Microsoft Remote Desktop session to your new virtual Windows developer workstation!"
+    open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
+    # open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:${DESKTOP_WIDTH}&desktopheight:i:${DESKTOP_HEIGHT}&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
+    break
+  else
+    echo -n "."
+    sleep 10
+  fi
+done

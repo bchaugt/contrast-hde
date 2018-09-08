@@ -17,7 +17,7 @@ TTL_PERIODS=0
 CREATION_TIMESTAMP="$(date '+%Y-%m-%d-%H-%M-%S')"
 INSTANCE_TYPE=m5.xlarge
 PUBLIC_IP=''
-DEFAULT_DEMO_AMI=hde-0.1.8 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.11 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 
 # Check if all expected arguments were provided
 if [[ $# -ne 6 ]]; then
