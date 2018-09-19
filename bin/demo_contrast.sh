@@ -3,7 +3,7 @@
 # This script is meant to be run on MacOS
 
 # Variables
-DEFAULT_DEMO_AMI=hde-0.1.12 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.17 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 USAGE="Usage: $0 [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' 'Brian Chau' us-west-1 2"
 VERSION=$1
 CUSTOMER=$2
@@ -167,7 +167,7 @@ sleep 300
 while true; do
   # Ping the new instance's public IP address to see if there is any packet loss
   PING_RESPONSE="$(ping -c ${PING_COUNT} ${PUBLIC_IP} | grep -o " 0.0% packet loss" )" # The blank space before '0.0%...' is important
-  # echo $PING_RESPONSE
+  echo $PING_RESPONSE
 
   if [ "${PING_RESPONSE}" = " 0.0% packet loss" ]; then
     # If the instance is available, then launch Microsoft Remote Desktop to connect
