@@ -6,7 +6,7 @@ Set-AWSCredential -ProfileName DemoPerson
 # ./win_2016_aws_network_fix.ps1
 
 # Define target Linux AMI by name
-$target_ami_name = "hde-linux-ruby-0.1.0"
+$target_ami_name = "hde-linux-ruby-0.1.2"
 Write-Host $target_ami_name
 
 # Check to see if the instance is already running.
@@ -71,24 +71,40 @@ $tagspec.ResourceType = "instance"
 $tagspec.Tags.Add($tag_purpose)
 $tagspec.Tags.Add($tag_name)
 
-# Launch new Linux instance
-Write-Host "Launching new EC2 Linux instance for Ruby demo..."
-$instance = New-EC2Instance -Region $region -ImageId $target_image.ImageId -MinCount 1 -MaxCount 1 -KeyName $keyname -SecurityGroups "ContrastDemo" -InstanceType t2.medium -UserData $user_data -TagSpecification $tagspec
+# Check if Linux instance(s) associated with this running (Windows) instance already exist
+$running_linux_instances = (Get-EC2Instance -Region $region -Filter @{Name="tag:Name";Value=$instance_name},@{Name="instance-state-name";Value="running"}).Instances
+If ($running_linux_instances.Length -gt 0) {
+	Write-Host "A child Linux instance called "$instance_name" already exists.  You only need to run this script once."
+	Write-Host "Please connect to http://linux:5000 to access RailsGoat.`n"
+	
+	# Open web browser to new Linux instance running RailsGoat
+	$linux_instance_ip = $running_linux_instances[0].PrivateIpAddress
+	$path = "http://" + $env:linux_instance_ip + ":5000"
+	cmd /c start /min $path
+} Else {
+	# Launch new Linux instance
+	Write-Host "Launching new EC2 Linux instance for Ruby demo..."
+	$instance = New-EC2Instance -Region $region -ImageId $target_image.ImageId -MinCount 1 -MaxCount 1 -KeyName $keyname -SecurityGroups "ContrastDemo" -InstanceType t2.medium -UserData $user_data -TagSpecification $tagspec
 
-# Get the new Linux instance ID and IP address via it's AWS reservation info
-$reservation = New-Object 'collections.generic.list[string]'
-$reservation.add($instance.ReservationId)
+	# Get the new Linux instance ID and IP address via it's AWS reservation info
+	$reservation = New-Object 'collections.generic.list[string]'
+	$reservation.add($instance.ReservationId)
 
-$filter_reservation = New-Object Amazon.EC2.Model.Filter -Property @{Name = "reservation-id"; Values = $reservation}
-$instances = (Get-EC2Instance -Filter $filter_reservation -Region $region).Instances
-$instances[0]
+	$filter_reservation = New-Object Amazon.EC2.Model.Filter -Property @{Name = "reservation-id"; Values = $reservation}
+	$instances = (Get-EC2Instance -Filter $filter_reservation -Region $region).Instances
+	$instances[0]
 
-# Save new Linux instance ID and private IP address to environment variables
-$env:linux_instance_id = $instances[0].InstanceId
-$env:linux_instance_ip = $instances[0].PrivateIpAddress
- 
-# Open web browser to new Linux instance running RailsGoat
-$path = "http://" + $env:linux_instance_ip + ":5000"
-cmd /c start /min $path
+	# Save new Linux instance ID and private IP address to environment variables
+	$env:linux_instance_id = $instances[0].InstanceId
+	$env:linux_instance_ip = $instances[0].PrivateIpAddress
 
-Write-Host "Your Linux instance running Ruby RailsGoat should be available in a few minutes at" $path".`n"
+	# Update etc hosts file with the IP address.
+	$hosts_file = "C:\Windows\System32\drivers\etc\hosts"
+	$instances[0].PrivateIpAddress + " linux" | Add-Content -PassThru $hosts_file
+	
+	# Open web browser to new Linux instance running RailsGoat
+	$path = "http://" + $env:linux_instance_ip + ":5000"
+	cmd /c start /min $path
+
+	Write-Host "Your Linux instance running Ruby RailsGoat should be available in about 5 minutes at" $path".`n"
+}
