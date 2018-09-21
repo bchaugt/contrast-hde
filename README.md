@@ -33,7 +33,7 @@ This script will launch a new Contrast demo "virtual developer workstation".  It
 * Customer name or description, so your instance can be distinguished among your other demo instances
 * Your name, to help identify instances you’ve created
 * Your target AWS region, which should be closest to your geographic location (find your closest region at https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.RegionsAndAvailabilityZones.html)
-* Number of hours you need to keep the instance running – the instance will automatically terminate after the specified number of hours
+* Number of hours you need to keep the instance running – the instance will automatically terminate after the specified number of hours (if `0` is specified, then no auto-termination alarm will be set; if a value greater than `24` is specified, then the maximum allowed value of 24 will be set)
 
 **Usage:** `./demo_contrast.sh [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]`
 

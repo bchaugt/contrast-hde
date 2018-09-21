@@ -127,11 +127,18 @@ if [ ! -z $INSTANCEID ]; then
   echo -e "If you do not know the password, please ask your friendly neighborhood sales engineer."
 
   if [ $TTL -gt 0 ]; then
+    # Check if the TTL value is greater than 24, and if so, then set it to the maximum alarm duration allowed by CloudWatch, which is 24
+    if [ $TTL -gt 24 ]; then
+      TTL=24
+      TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD)
+      echo -e "\nThe maximum allowed CloudWatch alarm duration is 24 hours.  Resetting the auto-termination alarm to trigger after 24 hours."
+    else
+      TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
+    fi
     # Set unique name for the CloudWatch alarm
     ALARM_NAME="Auto-terminate ${INSTANCEID} after ${TTL} hours"
 
     # Set CloudWatch alarm to automatically terminate the EC2 instance when the TTL expires
-    TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD + $TTL_BUFFER)
     TERMINATION_ALARM=$(aws --profile $HDE_PROFILE_NAME --region=${REGION_AWS} cloudwatch put-metric-alarm \
     --alarm-name "${ALARM_NAME}" \
     --alarm-description "Terminate instance after ${TTL} hours" \
@@ -157,26 +164,26 @@ if [ ! -z $INSTANCEID ]; then
     # No alarm will be set and this instance will need to be auto-terminated
     echo -e "\n*** PLEASE NOTE THAT THIS NEW INSTANCE WILL NOT BE AUTOMATICALLY TERMINATED ***"
   fi
+
+  # Sleep 5 minutes and then check if the new instance is network accessible
+  echo -e "\nNow let's wait for 5 minutes and then check if the instance is ready..."
+  sleep 300
+
+  # Check if the new instance is publicly accessible every 10 seconds
+  while true; do
+    # Ping the new instance's public IP address to see if there is any packet loss
+    PING_RESPONSE="$(ping -c ${PING_COUNT} ${PUBLIC_IP} | grep -o " 0.0% packet loss" )" # The blank space before '0.0%...' is important
+    echo $PING_RESPONSE
+
+    if [ "${PING_RESPONSE}" = " 0.0% packet loss" ]; then
+      # If the instance is available, then launch Microsoft Remote Desktop to connect
+      echo -e "Opening Microsoft Remote Desktop session to your new virtual Windows developer workstation!"
+      open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
+      # open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:${DESKTOP_WIDTH}&desktopheight:i:${DESKTOP_HEIGHT}&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
+      break
+    else
+      echo -n "."
+      sleep 10
+    fi
+  done
 fi
-
-# Sleep 5 minutes and then check if the new instance is network accessible
-echo -e "\nNow let's wait for 5 minutes and then check if the instance is ready..."
-sleep 300
-
-# Check if the new instance is publicly accessible every 10 seconds
-while true; do
-  # Ping the new instance's public IP address to see if there is any packet loss
-  PING_RESPONSE="$(ping -c ${PING_COUNT} ${PUBLIC_IP} | grep -o " 0.0% packet loss" )" # The blank space before '0.0%...' is important
-  echo $PING_RESPONSE
-
-  if [ "${PING_RESPONSE}" = " 0.0% packet loss" ]; then
-    # If the instance is available, then launch Microsoft Remote Desktop to connect
-    echo -e "Opening Microsoft Remote Desktop session to your new virtual Windows developer workstation!"
-    open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
-    # open -Fa /Applications/Microsoft\ Remote\ Desktop.app "rdp://full%20address=s:${PUBLIC_IP}&audiomode=i:0&disable%20themes=i:1&desktopwidth:i:${DESKTOP_WIDTH}&desktopheight:i:${DESKTOP_HEIGHT}&screen%20mode%20id=i:2&smart%20sizing=i:1&username=s:Administrator&session%20bpp=i:32&allow%20font%20smoothing=i:1&prompt%20for%20credentials%20on%20client=i:0&disable%20full%20window%20drag=i:1&autoreconnection%20enabled=i:1"
-    break
-  else
-    echo -n "."
-    sleep 10
-  fi
-done
