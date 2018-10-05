@@ -54,7 +54,7 @@ This script will deregister AMIs across all AWS regions based on the specified A
 The following PowerShell scripts are designed to only be run from within a Contrast demo "virtual developer workstation".  There are located in `C:\Contrast` within the demo workstation.
 
 ### CreateRailsGoatInstance.ps1
-This script will launch a Linux EC2 instance from within a Windows "virtual developer workstation" to support a Ruby RailsSGoat demonstration.  The result is a Linux server in the same AWS VPC that is pre-configured to serve RailsGoat and connect to the Contrast TeamServer running on the Wndows workstation.  This script will only allow for one running child Linux instance with RailsGoat.<br/>
+This script will launch a Linux EC2 instance from within a Windows "virtual developer workstation" to support a Ruby RailsSGoat demonstration.  The result is a Linux server in the same AWS VPC that is pre-configured to serve RailsGoat and connect to the Contrast TeamServer running on the Wndows workstation.  This script will only allow for one running child Linux instance with RailsGoat that will automatically be terminated after 24 hours.<br/>
 **Usage:** `.\CreateRailsGoatInstance.ps1`
 <br/>
 
