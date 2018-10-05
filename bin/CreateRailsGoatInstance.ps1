@@ -98,6 +98,20 @@ If ($running_linux_instances.Length -gt 0) {
 	$env:linux_instance_id = $instances[0].InstanceId
 	$env:linux_instance_ip = $instances[0].PrivateIpAddress
 
+	# Set unique name for the CloudWatch alarm
+	$alarm_name="Auto-terminate " + $instances[0].InstanceId + " after 24 hours"
+
+	# Set dimension for CloudWatch alarm
+	$dimension = New-Object Amazon.CloudWatch.Model.dimension
+	$dimension.set_Name("InstanceId")
+	$dimension.set_Value($instances[0].InstanceId)
+
+	# Set CloudWatch alarm action
+	$alarm_action = "arn:aws:automate:" + $region + ":ec2:terminate"
+
+	# Set CloudWatch alarm to automatically terminate the EC2 instance after 24 hours
+	Write-CWMetricAlarm -AlarmName $alarm_name -AlarmDescription "Terminate instance after 24 hours" -MetricName "CPUUtilization" -Namespace "AWS/EC2" -Statistic "Average" -Period 900 -Threshold 0 -ComparisonOperator "GreaterThanThreshold" -EvaluationPeriods 96 -AlarmActions $alarm_action -Unit "Percent" -Dimensions $dimension
+
 	# Update etc hosts file with the IP address.
 	$hosts_file = "C:\Windows\System32\drivers\etc\hosts"
 	$instances[0].PrivateIpAddress + " linux" | Add-Content -PassThru $hosts_file
