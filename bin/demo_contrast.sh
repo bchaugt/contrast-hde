@@ -3,7 +3,7 @@
 # This script is meant to be run on MacOS
 
 # Variables
-DEFAULT_DEMO_AMI=hde-0.1.26 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
+DEFAULT_DEMO_AMI=hde-0.1.27 # This value should updated whenever a new AMI for the Contrast demo "golden image" is created
 USAGE="Usage: $0 [demo version] [customer name or description] [your name] [your target AWS region] [hours to keep demo running]\n\nExample:\n$0 default 'Acme Corp' 'Brian Chau' us-west-1 2"
 VERSION=$1
 CUSTOMER=$2
