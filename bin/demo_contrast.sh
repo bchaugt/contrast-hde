@@ -128,7 +128,7 @@ if [ ! -z $INSTANCEID ]; then
 
   if [ $TTL -gt 0 ]; then
     # Check if the TTL value is greater than 24, and if so, then set it to the maximum alarm duration allowed by CloudWatch, which is 24
-    if [ $TTL -gt 24 ]; then
+    if [ $TTL -gt 23 ]; then
       TTL=24
       TTL_PERIODS=$(expr $TTL \* 3600 / $ALARM_PERIOD)
       echo -e "\nThe maximum allowed CloudWatch alarm duration is 24 hours.  Resetting the auto-termination alarm to trigger after 24 hours."
